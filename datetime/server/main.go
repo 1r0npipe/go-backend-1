@@ -5,6 +5,9 @@ import (
 	"log"
 	"net"
 	"time"
+	"fmt"
+	"bufio"
+	"os"
 )
 
 func main() {
@@ -16,9 +19,10 @@ func main() {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Print(err)
-			continue
+			// continue
 		}
-		handleConn(conn)
+		go sendMessage(conn)
+		go handleConn(conn)
 	}
 }
 
@@ -33,3 +37,15 @@ func handleConn(c net.Conn) {
 	}
 }
 
+func sendMessage(c net.Conn) {
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println("Enter message >")
+		str,_ := reader.ReadString('\n')
+		_, err := io.WriteString(c, str)
+		if err != nil {
+			return
+		}
+		
+	}
+}
