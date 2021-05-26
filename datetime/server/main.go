@@ -9,19 +9,28 @@ import (
 	"bufio"
 	"os"
 )
+type client chan<- string
+
+var (
+	entering = make(chan client)
+	leaving  = make(chan client)
+	messages = make(chan string)
+	clients  = make(map[client]bool)
+)
 
 func main() {
 	listener, err := net.Listen("tcp", "localhost:8000")
 	if err != nil {
 		log.Fatal(err)
 	}
+	go broadcaster()
+	go sendMessage()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Print(err)
-			// continue
+			continue
 		}
-		go sendMessage(conn)
 		go handleConn(conn)
 	}
 }
@@ -37,15 +46,29 @@ func handleConn(c net.Conn) {
 	}
 }
 
-func sendMessage(c net.Conn) {
+func sendMessage() {
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Enter message >")
+		fmt.Print("Enter message >")
 		str,_ := reader.ReadString('\n')
-		_, err := io.WriteString(c, str)
-		if err != nil {
-			return
+		messages <- str
+	}
+}
+
+func broadcaster() {
+
+	for {
+		select {
+		case msg := <-messages:
+			for cli := range clients {
+				cli <- msg
+			}
+		case cli := <-entering:
+			clients[cli] = true
+
+		case cli := <-leaving:
+			delete(clients, cli)
+			close(cli)
 		}
-		
 	}
 }
