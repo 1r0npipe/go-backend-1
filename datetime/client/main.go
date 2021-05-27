@@ -17,12 +17,11 @@ func main() {
       
 	buf := make([]byte, 256) // создаем буфер
 	for {
-          _, err = conn.Read(buf)
-          if err == io.EOF {
-              break
-          }
-          io.WriteString(os.Stdout, fmt.Sprintf("Custom output! %s", string(buf))) // выводим измененное сообщение сервера в консоль
-		  buf = buf[:0]
+		_, err = conn.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		io.WriteString(os.Stdout, fmt.Sprintf("Custom output! %s", string(buf))) // выводим измененное сообщение сервера в консоль
     }
 }
 

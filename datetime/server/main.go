@@ -23,8 +23,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go broadcaster()
 	go sendMessage()
+	go broadcaster()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -38,13 +38,22 @@ func main() {
 func handleConn(c net.Conn) {
 	defer c.Close()
 	for {
-		_, err := io.WriteString(c, time.Now().Format("15:04:05\n\r"))
-		if err != nil {
-			return
+		select {
+		case msg := <- messages:
+			_, err := io.WriteString(c, msg)
+			if err != nil {
+				return
+			}
+		default:
+			_, err := io.WriteString(c, time.Now().Format("15:04:05\n\r"))
+			if err != nil {
+				return
+			}
+			time.Sleep(1 * time.Second)
 		}
-		time.Sleep(1 * time.Second)
 	}
 }
+
 
 func sendMessage() {
 	for {
