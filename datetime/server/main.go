@@ -1,21 +1,20 @@
 package main
 
 import (
-	"io"
+	"bufio"
+	"fmt"
 	"log"
 	"net"
-	"time"
-	"fmt"
-	"bufio"
 	"os"
+	"time"
 )
+
 type client chan<- string
 
 var (
 	entering = make(chan client)
 	leaving  = make(chan client)
 	messages = make(chan string)
-	clients  = make(map[client]bool)
 )
 
 func main() {
@@ -35,37 +34,8 @@ func main() {
 	}
 }
 
-func handleConn(c net.Conn) {
-	defer c.Close()
-	for {
-		select {
-		case msg := <- messages:
-			_, err := io.WriteString(c, msg)
-			if err != nil {
-				return
-			}
-		default:
-			_, err := io.WriteString(c, time.Now().Format("15:04:05\n\r"))
-			if err != nil {
-				return
-			}
-			time.Sleep(1 * time.Second)
-		}
-	}
-}
-
-
-func sendMessage() {
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter message >")
-		str,_ := reader.ReadString('\n')
-		messages <- str
-	}
-}
-
 func broadcaster() {
-
+	clients := make(map[client]bool)
 	for {
 		select {
 		case msg := <-messages:
@@ -74,10 +44,39 @@ func broadcaster() {
 			}
 		case cli := <-entering:
 			clients[cli] = true
-
 		case cli := <-leaving:
 			delete(clients, cli)
 			close(cli)
 		}
+	}
+}
+
+func handleConn(c net.Conn) {
+	defer c.Close()
+	ch := make(chan string)
+	go clientWriter(c, ch)
+	entering <- ch
+	for {
+		ch <- time.Now().Format("15:04:05")
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func clientWriter(conn net.Conn, ch <-chan string) {
+	for msg := range ch {
+		fmt.Fprintln(conn, msg)
+	}
+}
+
+func sendMessage() chan string {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("send message > ")
+		msg, _, err := reader.ReadLine()
+		if err != nil {
+			reader.Reset(os.Stdin)
+			continue
+		}
+		messages <- string(msg)
 	}
 }

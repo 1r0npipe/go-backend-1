@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -5,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"fmt"
 )
 
 func main() {
@@ -14,14 +14,9 @@ func main() {
 		log.Fatal(err)
 	}
 	defer conn.Close()
-      
-	buf := make([]byte, 256) // создаем буфер
-	for {
-		_, err = conn.Read(buf)
-		if err == io.EOF {
-			break
-		}
-		io.WriteString(os.Stdout, fmt.Sprintf("Custom output! %s", string(buf))) // выводим измененное сообщение сервера в консоль
-    }
-}
 
+	go func() {
+		io.Copy(os.Stdout, conn)
+	}()
+	io.Copy(conn, os.Stdin)
+}
