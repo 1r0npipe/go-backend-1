@@ -52,7 +52,6 @@ func broadcaster() {
 }
 
 func handleConn(c net.Conn) {
-	defer c.Close()
 	ch := make(chan string)
 	go clientWriter(c, ch)
 	entering <- ch
@@ -60,6 +59,8 @@ func handleConn(c net.Conn) {
 		ch <- "Current time: " + time.Now().Format("15:04:05")
 		time.Sleep(1 * time.Second)
 	}
+	leaving <- ch
+	c.Close()
 }
 
 func clientWriter(conn net.Conn, ch <-chan string) {
