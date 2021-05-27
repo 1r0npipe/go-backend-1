@@ -57,7 +57,7 @@ func handleConn(c net.Conn) {
 	go clientWriter(c, ch)
 	entering <- ch
 	for {
-		ch <- time.Now().Format("15:04:05")
+		ch <- "Current time: " + time.Now().Format("15:04:05")
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -77,6 +77,6 @@ func sendMessage() chan string {
 			reader.Reset(os.Stdin)
 			continue
 		}
-		messages <- string(msg)
+		messages <- "Message from server: " + string(msg)
 	}
 }
