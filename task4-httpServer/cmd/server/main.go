@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 )
- 
+
 type UploadHandler struct {
 	HostAddr  string
 	UploadDir string
- }
+}
 
 var (
 	fileSystem = "/tmp/upload"
@@ -24,9 +24,8 @@ var (
 
 type File struct {
 	Name string `json:"filename"`
-	Size int	`json:"sizeByte"`
+	Size int    `json:"sizeByte"`
 }
-
 
 func main() {
 	uploadHandler := &UploadHandler{
@@ -35,11 +34,11 @@ func main() {
 	http.Handle("/upload", uploadHandler)
 	http.Handle("/ls", uploadHandler)
 	http.Handle("/", uploadHandler)
-	
-	go http.ListenAndServe(":8000",nil)
-	
+
+	go http.ListenAndServe(":8000", nil)
+
 	dirToServe := http.Dir(uploadHandler.UploadDir)
- 
+
 	fs := &http.Server{
 		Addr:         ":8080",
 		Handler:      http.FileServer(dirToServe),
@@ -47,9 +46,9 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	}
 	fs.ListenAndServe()
- }
+}
 
- func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var ext string
 	fileList, err := PrintFileSystem(os.DirFS(fileSystem))
 	if r.URL.Path == "/" {
@@ -58,7 +57,7 @@ func main() {
 		if param == "txt" {
 			ext = "txt"
 		}
-		if param == "jpg"{
+		if param == "jpg" {
 			ext = "jpg"
 		}
 		for _, item := range fileList {
@@ -78,7 +77,7 @@ func main() {
 	switch r.Method {
 	case http.MethodGet:
 		if err != nil {
-			http.Error(w, "Unable to get content of root directory: " + fileSystem, http.StatusBadRequest)
+			http.Error(w, "Unable to get content of root directory: "+fileSystem, http.StatusBadRequest)
 			return
 		}
 		jsonOut, err := json.Marshal(fileList)
@@ -96,14 +95,14 @@ func main() {
 			return
 		}
 		defer file.Close()
-	
+
 		data, err := ioutil.ReadAll(file)
 		if err != nil {
 			http.Error(w, "Unable to read file", http.StatusBadRequest)
 			return
 		}
 
-		timeStamp := strconv.Itoa(int(time.Now().UnixNano() / 1000000) )
+		timeStamp := strconv.Itoa(int(time.Now().UnixNano() / 1000000))
 		filePath := h.UploadDir + "/" + timeStamp + "-" + header.Filename
 
 		err = ioutil.WriteFile(filePath, data, 0777)
@@ -115,12 +114,12 @@ func main() {
 		fileLink := h.HostAddr + "/" + timeStamp + "-" + header.Filename
 		fmt.Fprintln(w, fileLink)
 	}
- }
- 
-func PrintFileSystem(filepath fs.FS) ([]File,error) {
+}
+
+func PrintFileSystem(filepath fs.FS) ([]File, error) {
 	var fileList []File
 	var file File
-	err := fs.WalkDir(filepath, ".", func (path string, info fs.DirEntry, err error) error {
+	err := fs.WalkDir(filepath, ".", func(path string, info fs.DirEntry, err error) error {
 		fileInfo, _ := info.Info()
 		if !info.IsDir() {
 			file.Name = fileInfo.Name()
