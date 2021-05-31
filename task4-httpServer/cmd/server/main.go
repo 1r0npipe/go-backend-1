@@ -26,9 +26,7 @@ type File struct {
 	Name string `json:"filename"`
 	Size int	`json:"sizeByte"`
 }
-type Handler struct {
 
-}
 
 func main() {
 	uploadHandler := &UploadHandler{
@@ -50,9 +48,7 @@ func main() {
 	}
 	fs.ListenAndServe()
  }
-func (h *UploadHandler) ListDir() {
 
-}
  func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var ext string
 	fileList, err := PrintFileSystem(os.DirFS(fileSystem))

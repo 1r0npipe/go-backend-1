@@ -1,28 +1,53 @@
 package main
 
 import (
+
 	"net/http"
 	"net/http/httptest"
+
 	"testing"
+
+	_ "github.com/stretchr/testify/assert"
 )
 
 func TestUploadHandler_ServeHTTP(t *testing.T) {
-	req, err := http.NewRequest("GET", "/?ext=jpg", nil)
-	if err != nil {
-		t.Fatal(err)
+	testsTab := []struct {
+		wantRequest string
+		wantParam   string
+		gotCode     int
+		gotOutput   string
+	}{
+		{
+			wantRequest: "GET",
+			wantParam:   "/?ext=jpg",
+			gotCode:     200,
+			gotOutput:   `[{"filename":"test.jpg","sizeByte":51358}]`,
+		},
+		{
+			wantRequest: "GET",
+			wantParam:   "/?ext=txt",
+			gotCode:     200,
+			gotOutput:   `[{"filename":"test.txt","sizeByte":18},{"filename":"test1.txt","sizeByte":5}]`,
+		},
 	}
-	rr := httptest.NewRecorder()
-	handler := &UploadHandler{
-		UploadDir: fileSystem,
+	for _, tt := range testsTab {
+		req, err := http.NewRequest(tt.wantRequest, tt.wantParam, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rr := httptest.NewRecorder()
+		handler := &UploadHandler{
+			UploadDir: fileSystem,
+		}
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusOK)
+		}
+		got := rr.Body.String()[:len(rr.Body.String())-1]
+		if got != tt.gotOutput {
+			t.Errorf("handler returned unexpected body: got %v want %v",
+				rr.Body.String(), tt.gotOutput)
+		}
 	}
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-	// expected := string(`[{"filename":"test.jpg","sizeByte":51358}]`)
-	// if rr.Result().StatusCode != ht {
-	// 	t.Errorf("handler returned unexpected body: got %v want %v",
-	// 		rr.Body.String(), expected)
-	// }
 }
