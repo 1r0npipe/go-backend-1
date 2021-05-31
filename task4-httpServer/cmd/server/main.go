@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
  
@@ -24,6 +26,9 @@ type File struct {
 	Name string `json:"filename"`
 	Size int	`json:"sizeByte"`
 }
+type Handler struct {
+
+}
 
 func main() {
 	uploadHandler := &UploadHandler{
@@ -31,6 +36,7 @@ func main() {
 	}
 	http.Handle("/upload", uploadHandler)
 	http.Handle("/ls", uploadHandler)
+	http.Handle("/", uploadHandler)
 	
 	go http.ListenAndServe(":8000",nil)
 	
@@ -48,9 +54,33 @@ func (h *UploadHandler) ListDir() {
 
 }
  func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var ext string
+	fileList, err := PrintFileSystem(os.DirFS(fileSystem))
+	if r.URL.Path == "/" {
+		var selectedFiles []File
+		param := r.FormValue("ext")
+		if param == "txt" {
+			ext = "txt"
+		}
+		if param == "jpg"{
+			ext = "jpg"
+		}
+		for _, item := range fileList {
+			fileName := strings.Split(item.Name, ".")
+			if fileName[1] == ext {
+				selectedFiles = append(selectedFiles, item)
+			}
+		}
+		jsonOut, err := json.Marshal(selectedFiles)
+		if err != nil {
+			http.Error(w, "Unable to do marshall to Json", http.StatusBadRequest)
+			return
+		}
+		fmt.Fprintln(w, string(jsonOut))
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
-		fileList, err := PrintFileSystem(os.DirFS(fileSystem))
 		if err != nil {
 			http.Error(w, "Unable to get content of root directory: " + fileSystem, http.StatusBadRequest)
 			return
@@ -77,7 +107,8 @@ func (h *UploadHandler) ListDir() {
 			return
 		}
 
-		filePath := h.UploadDir + "/" + header.Filename
+		timeStamp := strconv.Itoa(int(time.Now().UnixNano() / 1000000) )
+		filePath := h.UploadDir + "/" + timeStamp + "-" + header.Filename
 
 		err = ioutil.WriteFile(filePath, data, 0777)
 		if err != nil {
@@ -85,7 +116,7 @@ func (h *UploadHandler) ListDir() {
 			http.Error(w, "Unable to save file", http.StatusInternalServerError)
 			return
 		}
-		fileLink := h.HostAddr + "/" + header.Filename
+		fileLink := h.HostAddr + "/" + timeStamp + "-" + header.Filename
 		fmt.Fprintln(w, fileLink)
 	}
  }
